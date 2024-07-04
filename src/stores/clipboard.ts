@@ -31,6 +31,11 @@ export const useClipboardStore = defineStore('clipboard', {
         ...clipboard,
         title: clipboard.content.slice(0, 10) + '...'
       }))
+      this.clipboards.unshift({
+        'title': 'New',
+        'content': '',
+        'createdAt': new Date().toISOString().split('Z')[0]
+      })
     },
     async updateClipboard(id: number, content: string) {
       const response = await http.put(`/api/clipboard/${id}`, {

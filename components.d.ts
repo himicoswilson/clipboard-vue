@@ -7,11 +7,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    ClipboardComponent: typeof import('./src/components/clipboard/ClipboardComponent.vue')['default']
     ClipboardList: typeof import('./src/components/home/Clipboard/ClipboardList.vue')['default']
     ClipboardMain: typeof import('./src/components/home/Clipboard/ClipboardMain.vue')['default']
+    FileList: typeof import('./src/components/home/File/FileList.vue')['default']
     FileMain: typeof import('./src/components/home/File/FileMain.vue')['default']
-    FilesMain: typeof import('./src/components/files/FilesMain.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

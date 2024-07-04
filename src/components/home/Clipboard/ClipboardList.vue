@@ -1,53 +1,70 @@
 <template>
-  <div class="details" v-for="(clipboard, index) in clipboardStore.clipboards" :key="clipboard.id">
-    <details @toggle="(event) => handleToggle(event, index)">
-      <summary class="summary">
-        <h2 class="title">{{ clipboard.title }}</h2>
-        <div class="button-group">
-          <button>
+  <Waterfall
+    :list="clipboardStore.clipboards"
+    class="clip-container"
+    :hasAroundGutter="false"
+    :gutter="12"
+    :animationDelay="0"
+    :width="270"
+  >
+    <template #item="{ item, index }">
+      <div class="details">
+        <details @toggle="(event) => handleToggle(event, index)">
+          <summary class="summary">
+            <h2 class="title">{{ item.title }}</h2>
+            <div class="button-group">
+              <button v-if="item.id">
+                <font-awesome-icon
+                  class="del icon"
+                  :icon="['far', 'trash-can']"
+                  @click="deleteClipboard(item.id)"
+                />
+              </button>
+              <button v-if="item.open || (!item.id && !item.open)">
+                <font-awesome-icon
+                  class="save icon"
+                  :icon="[item.isSaveClicked ? 'fas' : 'far', 'floppy-disk']"
+                  @click="saveClipboard(item.id, item.content, item.createdAt, index )"
+                />
+              </button>
+              <button v-if="!item.open && item.id">
+                <font-awesome-icon
+                  class="icon"
+                  :icon="[item.isCopyClicked ? 'fas' : 'far', 'clone']"
+                  @click="copyToClipboard(item.content, index)"
+                />
+              </button>
+              <button v-if="!item.id">
+                <font-awesome-icon class="new icon" :icon="['fas', 'plus']" @click="createNewClipboard" />
+              </button>
+            </div>
+          </summary>
+        </details>
+        <div :ref="(el) => (detailsContent[index] = el)" class="details-content">
+          <div class="input-container">
+            <textarea
+              v-model="item.content"
+              @input="(event) => autoResize(event, index)"
+            ></textarea>
             <font-awesome-icon
-              class="del icon"
-              :icon="['far', 'trash-can']"
-              @click="deleteClipboard(clipboard.id)"
+              class="copy"
+              :icon="[item.isCopyClicked ? 'fas' : 'far', 'clone']"
+              @click="copyToClipboard(item.content, index)"
             />
-          </button>
-          <button v-if="clipboard.open">
-            <font-awesome-icon
-              class="save icon"
-              :icon="[clipboard.isSaveClicked ? 'fas' : 'far', 'floppy-disk']"
-              @click="saveClipboard(clipboard.id, clipboard.content, index)"
-            />
-          </button>
-          <button v-if="!clipboard.open">
-            <font-awesome-icon
-              class="icon"
-              :icon="[clipboard.isCopyClicked ? 'fas' : 'far', 'clone']"
-              @click="copyToClipboard(clipboard.content, index)"
-            />
-          </button>
+          </div>
+          <div class="info">
+            <p class="info-text">{{ formatDate(item.createdAt) }}</p>
+          </div>
         </div>
-      </summary>
-    </details>
-    <div :ref="(el) => (detailsContent[index] = el)" class="details-content">
-      <div class="input-container">
-        <textarea
-          v-model="clipboard.content"
-          @input="(event) => autoResize(event, index)"
-        ></textarea>
-        <font-awesome-icon
-          class="copy"
-          :icon="[clipboard.isCopyClicked ? 'fas' : 'far', 'clone']"
-          @click="copyToClipboard(clipboard.content, index)"
-        />
       </div>
-      <div class="info">
-        <p class="info-text">{{ formatDate(clipboard.createdAt) }}</p>
-      </div>
-    </div>
-  </div>
+    </template>
+  </Waterfall>
 </template>
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+// 引入 Waterfall
+import { Waterfall } from 'vue-waterfall-plugin-next'
+import 'vue-waterfall-plugin-next/dist/style.css'
 import { useClipboardStore } from '@/stores/clipboard'
 import autolog from 'autolog.js'
 
@@ -67,7 +84,17 @@ onMounted(async () => {
       }
     })
   })
+  // 默認展開第一個
+  nextTick(() => {
+    updateMaxHeight(0)
+  })
+  clipboardStore.clipboards[0].open = true
 })
+
+const createNewClipboard = () => {
+  clipboardStore.clipboards[0].content = ''
+  clipboardStore.clipboards[0].createdAt = new Date().toISOString().split('Z')[0]
+}
 
 const autoResize = (event, index) => {
   const textarea = event.target
@@ -116,11 +143,21 @@ const copyToClipboard = (content, index) => {
   }, 2000)
 }
 
-const saveClipboard = async (id, content, index) => {
-  await clipboardStore.updateClipboard(id, content).then(() => {
-    clipboardStore.clipboards[index].isSaveClicked = true
-    autolog.log('save successful', 'success', 2500)
-  })
+const saveClipboard = async (id, content, createdAt, index) => {
+  if (!id) {
+    await clipboardStore
+    .saveClipboard(content, createdAt)
+    .then(() => {
+      clipboardStore.clipboards[index].isSaveClicked = true
+      createNewClipboard()
+      autolog.log('save successful', 'success', 2500)
+    })
+  } else {
+    await clipboardStore.updateClipboard(id, content).then(() => {
+      clipboardStore.clipboards[index].isSaveClicked = true
+      autolog.log('save successful', 'success', 2500)
+    })
+  }
   setTimeout(() => {
     clipboardStore.clipboards[index].isSaveClicked = false
   }, 1000)
@@ -138,8 +175,8 @@ const deleteClipboard = async (id) => {
 }
 </script>
 <style scoped>
+
 .details {
-  width: 270px;
   border: 4px solid var(--color-white);
   border-radius: 10px;
   margin-top: 10px;
@@ -252,5 +289,10 @@ const deleteClipboard = async (id) => {
     font-size: 14px;
     color: var(--color-white);
   }
+}
+
+.clip-container {
+  background-color: var(--color-dark);
+  overflow: visible;
 }
 </style>

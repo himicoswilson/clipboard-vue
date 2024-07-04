@@ -5,9 +5,8 @@
       <div :class="{ select: isFile }" class="filesBtn" @click="showFiles">文件夹</div>
       <div :style="{ '--margin-left': marginLeftValue }" class="hoverBg"></div>
     </header>
-    <ClipboardMain v-if="!isFile" />
     <ClipboardList v-if="!isFile" />
-    <FileMain v-if="isFile" />
+    <FileList v-if="isFile" />
   </div>
 </template>
 
